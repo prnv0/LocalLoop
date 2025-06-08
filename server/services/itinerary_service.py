@@ -7,12 +7,16 @@ load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
-def generate_itinerary(lat, lng, restaurant_places, attraction_places):
+def generate_itinerary(lat, lng, places, mode="walking"):
     """
-    Given a starting hotel location and a list of places, generate an itinerary using Directions API.
+    Given a starting hotel location and places data, generate an itinerary using Directions API.
     """
     waypoints = []
 
+    # Extract restaurants and attractions from places dict
+    restaurant_places = places.get('restaurant_places', [])
+    attraction_places = places.get('attraction_places', [])
+    
     # Combine restaurants and attractions (limit to, e.g., top 5)
     combined_places = (restaurant_places + attraction_places)[:5]
     for place in combined_places:
@@ -27,7 +31,7 @@ def generate_itinerary(lat, lng, restaurant_places, attraction_places):
             destination=f"{lat},{lng}",  # loop back to hotel
             waypoints=waypoints,
             optimize_waypoints=True,
-            mode="walking"  # or "driving"
+            mode=mode
         )
 
         if not directions_result:
