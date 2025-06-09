@@ -195,7 +195,7 @@ const updateMapMarkers = () => {
   }
 
   // Fit map to show all markers
-  const group = new L.featureGroup(markers);
+  const group = new (L as any).featureGroup(markers);
   map!.fitBounds(group.getBounds().pad(0.1));
 };
 

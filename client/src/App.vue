@@ -12,7 +12,7 @@
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
           </div>
-          <h1 class="text-xl font-bold text-gray-900">TravelPlanner AI</h1>
+          <h1 class="text-xl font-bold text-gray-900">LocalLoop</h1>
         </div>
         <div class="text-sm text-gray-500">
           Chat-driven itinerary planning
@@ -36,8 +36,8 @@
             ]"
           >
             Chat
-            <span v-if="chat.messages.length > 1" class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-primary-500 rounded-full">
-              {{ chat.messages.length - 1 }}
+            <span v-if="chat.messages.value.length > 1" class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-primary-500 rounded-full">
+              {{ chat.messages.value.length - 1 }}
             </span>
           </button>
           <button
@@ -61,16 +61,16 @@
         <div class="flex-1 overflow-hidden">
           <ChatPane
             v-show="mobileView === 'chat'"
-            :messages="chat.messages"
-            :is-loading="chat.isLoading"
-            :error="chat.error"
+            :messages="chat.messages.value"
+            :is-loading="chat.isLoading.value"
+            :error="chat.error.value"
             @send-message="handleSendMessage"
             @clear-chat="chat.clearChat"
             class="h-full"
           />
           <ItineraryView
             v-show="mobileView === 'itinerary'"
-            :current-itinerary="chat.currentItinerary"
+            :current-itinerary="chat.currentItinerary.value"
             @remove-stop="chat.removeItineraryStop"
             class="h-full"
           />
@@ -82,9 +82,9 @@
         <!-- Chat Pane (40%) -->
         <div class="w-2/5 min-w-0">
           <ChatPane
-            :messages="chat.messages"
-            :is-loading="chat.isLoading"
-            :error="chat.error"
+            :messages="chat.messages.value"
+            :is-loading="chat.isLoading.value"
+            :error="chat.error.value"
             @send-message="handleSendMessage"
             @clear-chat="chat.clearChat"
             class="h-full"
@@ -94,7 +94,7 @@
         <!-- Itinerary View (60%) -->
         <div class="w-3/5 min-w-0">
           <ItineraryView
-            :current-itinerary="chat.currentItinerary"
+            :current-itinerary="chat.currentItinerary.value"
             @remove-stop="chat.removeItineraryStop"
             class="h-full"
           />
@@ -113,7 +113,7 @@ import { useChat } from './composables/useChat';
 const chat = useChat();
 const mobileView = ref<'chat' | 'itinerary'>('chat');
 
-const handleSendMessage = async (message: string) => {
+const handleSendMessage = async (message: string): Promise<void> => {
   await chat.sendMessage(message);
   // Switch to itinerary view on mobile after sending message
   if (window.innerWidth < 768) {

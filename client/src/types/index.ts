@@ -24,7 +24,8 @@ export interface Itinerary {
 }
 
 export interface ChatResponse {
-  message?: string;
+  session_id: string;
+  reply?: string;
   options?: string[];
   itinerary?: Itinerary;
 }

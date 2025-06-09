@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import type { Message, ChatResponse, ApiRequest, Itinerary } from '../types';
@@ -6,19 +6,29 @@ import type { Message, ChatResponse, ApiRequest, Itinerary } from '../types';
 const API_BASE_URL = 'http://localhost:8000';
 
 export function useChat() {
-  const sessionId = ref(uuidv4());
   const messages = ref<Message[]>([]);
   const currentItinerary = ref<Itinerary | null>(null);
+  const sessionId = ref<string | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+
+  // Send a message with no session id to initiate chat
+  async function initSession() {
+    let message = "Choose your trip type:";
+    const {session_id, reply, options} = await axios.post<ChatResponse>(`${API_BASE_URL}/chat`, {message: message}).then(r=>r.data);
+    sessionId.value = session_id;
+    console.log(message, reply, options);
+    addMessage(message , 'bot', options);
+  }
+  initSession();
 
   // Add initial welcome message
   const addWelcomeMessage = () => {
     messages.value.push({
       id: uuidv4(),
-      content: "Hello! I'm your travel planning assistant. Where would you like to go and when?",
+      content: "Hello! I'm your travel planning assistant.",
       sender: 'bot',
-      timestamp: new Date()
+      timestamp: new Date() 
     });
   };
 
@@ -35,7 +45,7 @@ export function useChat() {
   };
 
   const sendMessage = async (content: string): Promise<void> => {
-    if (!content.trim()) return;
+    if (!content.trim() || !sessionId.value) return;
 
     // Clear any previous errors
     error.value = null;
@@ -54,10 +64,11 @@ export function useChat() {
 
       const response = await axios.post<ChatResponse>(`${API_BASE_URL}/chat`, request);
       const data = response.data;
+      console.log(data);
 
       // Add bot response
-      if (data.message) {
-        addMessage(data.message, 'bot', data.options);
+      if (data.reply) {
+        addMessage(data.reply, 'bot', data.options);
       }
 
       // Update itinerary if provided
@@ -85,15 +96,15 @@ export function useChat() {
   const clearChat = () => {
     messages.value = [];
     currentItinerary.value = null;
-    sessionId.value = uuidv4();
-    addWelcomeMessage();
+    sessionId.value = null;
+    initSession();
   };
 
   // Initialize with welcome message
   addWelcomeMessage();
 
   return {
-    sessionId: sessionId.value,
+    sessionId,
     messages,
     currentItinerary,
     isLoading,
