@@ -3,6 +3,7 @@ import googlemaps
 import re
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from services.geocode_services import geocode_address
 from services.places_service import search_nearby_places, get_available_cuisines
@@ -16,6 +17,20 @@ load_dotenv()
 
 app = FastAPI()
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # React dev server (backup)
+        "http://127.0.0.1:5173",  # Alternative localhost
+        "http://127.0.0.1:3000",  # Alternative localhost
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 def _regenerate(session):
     return generate_itinerary(
         session["hotel"]["latitude"],
@@ -27,6 +42,7 @@ def _regenerate(session):
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
+    print(req)
     # 1. Initialize session
     if not req.session_id:
         sid = new_session()
