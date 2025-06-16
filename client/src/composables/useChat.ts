@@ -71,7 +71,7 @@ export function useChat() {
         addMessage(data.reply, 'bot', data.options);
       }
 
-      // Update itinerary if provided
+      // Update itinerary if provided (but don't display in chat)
       if (data.itinerary) {
         currentItinerary.value = data.itinerary;
       }
@@ -87,9 +87,15 @@ export function useChat() {
 
   const removeItineraryStop = (stopId: string) => {
     if (currentItinerary.value) {
-      currentItinerary.value.stops = currentItinerary.value.stops.filter(
-        stop => stop.id !== stopId
-      );
+      // Remove the place and its corresponding leg
+      const index = currentItinerary.value.ordered_places.findIndex(place => place.id === stopId);
+      if (index !== -1) {
+        currentItinerary.value.ordered_places.splice(index, 1);
+        // Remove the corresponding leg if it exists
+        if (currentItinerary.value.legs[index]) {
+          currentItinerary.value.legs.splice(index, 1);
+        }
+      }
     }
   };
 

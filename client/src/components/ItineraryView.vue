@@ -4,7 +4,7 @@
     <div class="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ currentItinerary?.title || 'Your Itinerary' }}
+          {{ currentItinerary?.summary || 'Your Itinerary' }}
         </h2>
         <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button
@@ -36,7 +36,7 @@
     <!-- Content Area -->
     <div class="flex-1 overflow-hidden">
       <!-- Empty State -->
-      <div v-if="!currentItinerary || !currentItinerary.stops || currentItinerary.stops.length === 0" 
+      <div v-if="!currentItinerary || !currentItinerary.ordered_places || currentItinerary.ordered_places.length === 0" 
            class="flex items-center justify-center h-full text-center p-8">
         <div class="max-w-sm">
           <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
@@ -56,8 +56,8 @@
       <div v-else-if="viewMode === 'list'" class="h-full overflow-y-auto custom-scrollbar">
         <div class="p-4 space-y-4">
           <div
-            v-for="(stop, index) in currentItinerary.stops"
-            :key="stop.id"
+            v-for="(place, index) in currentItinerary.ordered_places"
+            :key="place.id"
             class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors animate-fade-in"
           >
             <div class="flex items-start justify-between">
@@ -66,21 +66,21 @@
                   <span class="inline-flex items-center justify-center w-6 h-6 bg-primary-500 text-white text-sm font-medium rounded-full">
                     {{ index + 1 }}
                   </span>
-                  <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ stop.name }}</h3>
-                  <div v-if="stop.rating" class="flex items-center">
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ place.name }}</h3>
+                  <div v-if="place.rating" class="flex items-center">
                     <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                     </svg>
-                    <span class="ml-1 text-sm text-gray-600">{{ stop.rating }}</span>
+                    <span class="ml-1 text-sm text-gray-600 dark:text-gray-300">{{ place.rating }}</span>
                   </div>
                 </div>
-                <p class="text-gray-600 text-sm mb-2">{{ stop.address }}</p>
-                <div v-if="stop.travelTime && index > 0" class="text-sm text-gray-500">
-                  🚗 {{ stop.travelTime }} from previous stop
+                <p class="text-gray-600 dark:text-gray-300 text-sm mb-2">{{ place.address }}</p>
+                <div v-if="currentItinerary.legs[index]" class="text-sm text-gray-500 dark:text-gray-400">
+                  🚗 {{ currentItinerary.legs[index].duration }} ({{ currentItinerary.legs[index].distance }})
                 </div>
               </div>
               <button
-                @click="removeStop(stop.id)"
+                @click="removeStop(place.id)"
                 class="ml-4 text-gray-400 hover:text-red-500 transition-colors"
                 title="Remove stop"
               >
@@ -111,14 +111,17 @@
     </div>
 
     <!-- Summary Footer -->
-    <div v-if="currentItinerary && currentItinerary.stops && currentItinerary.stops.length > 0" 
+    <div v-if="currentItinerary && currentItinerary.ordered_places.length > 0" 
          class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-700">
       <div class="flex items-center justify-between text-sm">
-        <span class="text-gray-600">
-          {{ currentItinerary.stops.length }} stop{{ currentItinerary.stops.length > 1 ? 's' : '' }}
+        <span class="text-gray-600 dark:text-gray-300">
+          {{ currentItinerary.ordered_places.length }} stop{{ currentItinerary.ordered_places.length > 1 ? 's' : '' }}
         </span>
-        <span v-if="currentItinerary.totalDuration" class="text-gray-600">
-          Total: {{ currentItinerary.totalDuration }}
+        <span v-if="currentItinerary.legs.length > 0" class="text-gray-600 dark:text-gray-300">
+          Total: {{ currentItinerary.legs.reduce((total, leg) => {
+            const minutes = parseInt(leg.duration.split(' ')[0]);
+            return total + (isNaN(minutes) ? 0 : minutes);
+          }, 0) }} mins
         </span>
       </div>
     </div>
@@ -165,32 +168,32 @@ const initializeMap = () => {
 };
 
 const updateMapMarkers = () => {
-  if (!map || !props.currentItinerary || !props.currentItinerary.stops) return;
+  if (!map || !props.currentItinerary || !props.currentItinerary.ordered_places) return;
 
   // Clear existing markers
   markers.forEach(marker => map?.removeLayer(marker));
   markers = [];
 
-  const stops = props.currentItinerary.stops;
-  if (stops.length === 0) return;
+  const places = props.currentItinerary.ordered_places;
+  if (places.length === 0) return;
 
   // Add markers for each stop
-  stops.forEach((stop, index) => {
-    const marker = L.marker([stop.lat, stop.lng])
+  places.forEach((place, index) => {
+    const marker = L.marker([place.lat, place.lng])
       .addTo(map!)
       .bindPopup(`
         <div class="p-2">
-          <h3 class="font-medium">${index + 1}. ${stop.name}</h3>
-          <p class="text-sm text-gray-600">${stop.address}</p>
-          ${stop.rating ? `<p class="text-sm">⭐ ${stop.rating}</p>` : ''}
+          <h3 class="font-medium">${index + 1}. ${place.name}</h3>
+          <p class="text-sm text-gray-600">${place.address}</p>
+          ${place.rating ? `<p class="text-sm">⭐ ${place.rating}</p>` : ''}
         </div>
       `);
     markers.push(marker);
   });
 
   // Draw polyline connecting stops
-  if (stops.length > 1) {
-    const coordinates = stops.map(stop => [stop.lat, stop.lng] as [number, number]);
+  if (places.length > 1) {
+    const coordinates = places.map(place => [place.lat, place.lng] as [number, number]);
     L.polyline(coordinates, { color: '#3b82f6', weight: 3 }).addTo(map!);
   }
 

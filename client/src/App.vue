@@ -89,9 +89,9 @@
             ]"
           >
             Itinerary
-            <span v-if="chat.currentItinerary.value && chat.currentItinerary.value.stops.length > 0" 
+            <span v-if="chat.currentItinerary.value && chat.currentItinerary.value.ordered_places.length > 0" 
                   class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-green-500 rounded-full">
-              {{ chat.currentItinerary.value.stops.length }}
+              {{ chat.currentItinerary.value.ordered_places.length }}
             </span>
           </button>
         </div>
@@ -159,7 +159,7 @@ const handleSendMessage = async (message: string): Promise<void> => {
   // Switch to itinerary view on mobile after sending message
   if (window.innerWidth < 768) {
     setTimeout(() => {
-      if (chat.currentItinerary.value && chat.currentItinerary.value.stops.length > 0) {
+      if (chat.currentItinerary.value && chat.currentItinerary.value.ordered_places.length > 0) {
         mobileView.value = 'itinerary';
       }
     }, 1000);

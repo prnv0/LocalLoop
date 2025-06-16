@@ -209,24 +209,39 @@ def chat(req: ChatRequest):
                 mode=session["prefs"]["travel_mode"]
             )
             session["itinerary"] = itinerary
-            session["step"] = 5  # now in "post-itinerary" mode
 
+            # After generating itinerary, ask about changes
+            session["step"] = 5  # now in "post-itinerary" mode
             return ChatResponse(
                 session_id=sid,
-                reply="Here's your initial itinerary:",
+                reply="I've created your itinerary! Would you like to make any changes? You can:\n"
+                      "1. Remove a stop (e.g., 'remove 2nd stop')\n"
+                      "2. Replace a stop (e.g., 'replace 3rd stop with restaurant')\n"
+                      "3. Add more places (e.g., 'add more restaurants')\n"
+                      "4. Change travel mode (e.g., 'let's drive instead')\n"
+                      "5. Or say 'no changes' if you're happy with it",
+                options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                 itinerary=itinerary
             )
 
         # 4. Post-itinerary intent handlers (remove/add/change)
         if session["step"] >= 5:
-            # ... your existing remove/add/change blocks here, then regenerate and return ...
             text = req.message.strip().lower()
+
+            # Handle "no changes" response
+            if text in {"no changes", "no", "it's good", "looks good", "perfect"}:
+                return ChatResponse(
+                    session_id=sid,
+                    reply="Great! Your itinerary is ready. You can view it anytime by saying 'show itinerary'.",
+                    itinerary=session["itinerary"]
+                )
 
             # 1) Show itinerary
             if text in {"show itinerary", "view itinerary"}:
                 return ChatResponse(
                     session_id=sid,
-                    reply="Here's your current itinerary:",
+                    reply="Here's your current itinerary. Would you like to make any changes?",
+                    options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                     itinerary=session["itinerary"]
                 )
 
@@ -239,11 +254,60 @@ def chat(req: ChatRequest):
                     session["itinerary"] = _regenerate(session)
                     return ChatResponse(
                         session_id=sid,
-                        reply=f"Removed stop #{idx+1}. Here's the updated route:",
+                        reply=f"Removed stop #{idx+1}. Would you like to make any other changes?",
+                        options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
+                        itinerary=session["itinerary"]
+                    )
+                else:
+                    return ChatResponse(
+                        session_id=sid,
+                        reply="Invalid stop number. Please try again with a valid stop number.",
                         itinerary=session["itinerary"]
                     )
 
-            # 3) Add more of a category
+            # 3) Replace a stop
+            replace_pattern = r"replace (\d+)(?:st|nd|rd|th) stop with (\w+)"
+            m = re.match(replace_pattern, text)
+            if m:
+                idx = int(m.group(1)) - 1
+                new_type = m.group(2)
+                
+                if 0 <= idx < len(session["places"]):
+                    # Search for a new place of the specified type
+                    new_places = search_nearby_places(
+                        session["hotel"]["latitude"],
+                        session["hotel"]["longitude"],
+                        place_types=[new_type],
+                        keywords=session["prefs"]["food_keywords"],
+                        radius=int(session["prefs"]["max_distance_km"] * 1000),
+                        exclude_place_ids=[p["place_id"] for p in session["places"]]  # Exclude existing places
+                    )
+                    
+                    if new_places:
+                        # Replace the old place with the first new place found
+                        session["places"][idx] = new_places[0]
+                        session["itinerary"] = _regenerate(session)
+                        return ChatResponse(
+                            session_id=sid,
+                            reply=f"Replaced stop #{idx+1} with a new {new_type}. Would you like to make any other changes?",
+                            options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
+                            itinerary=session["itinerary"]
+                        )
+                    else:
+                        return ChatResponse(
+                            session_id=sid,
+                            reply=f"Sorry, I couldn't find any {new_type} to replace that stop. Would you like to try a different type?",
+                            options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
+                            itinerary=session["itinerary"]
+                        )
+                else:
+                    return ChatResponse(
+                        session_id=sid,
+                        reply="Invalid stop number. Please try again with a valid stop number.",
+                        itinerary=session["itinerary"]
+                    )
+
+            # 4) Add more of a category
             m = re.match(r"add more (\w+)", text)
             if m:
                 category = m.group(1)
@@ -258,20 +322,35 @@ def chat(req: ChatRequest):
                 session["itinerary"] = _regenerate(session)
                 return ChatResponse(
                     session_id=sid,
-                    reply=f"Added more {category}. Here's your revised itinerary:",
+                    reply=f"Added more {category}. Would you like to make any other changes?",
+                    options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                     itinerary=session["itinerary"]
                 )
 
-            # 4) Change travel mode
+            # 5) Change travel mode
             if text.startswith("let's ") and " instead" in text:
                 new_mode = text.split()[1]
                 session["prefs"]["travel_mode"] = new_mode
                 session["itinerary"] = _regenerate(session)
                 return ChatResponse(
                     session_id=sid,
-                    reply=f"Switched to {new_mode}. Here's your new route:",
+                    reply=f"Switched to {new_mode}. Would you like to make any other changes?",
+                    options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                     itinerary=session["itinerary"]
                 )
+
+            # If no specific change command is recognized, ask again
+            return ChatResponse(
+                session_id=sid,
+                reply="I didn't understand that. You can:\n"
+                      "1. Remove a stop (e.g., 'remove 2nd stop')\n"
+                      "2. Replace a stop (e.g., 'replace 3rd stop with restaurant')\n"
+                      "3. Add more places (e.g., 'add more restaurants')\n"
+                      "4. Change travel mode (e.g., 'let's drive instead')\n"
+                      "5. Or say 'no changes' if you're happy with it",
+                options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
+                itinerary=session["itinerary"]
+            )
 
     except Exception as e:
         # Log the error and return a friendly fallback without resetting session
@@ -282,7 +361,10 @@ def chat(req: ChatRequest):
         )
 
     # Default fallback if no branch is matched within try
-    return ChatResponse(session_id=sid, reply="I didn't understand that. You can 'show itinerary' or 'reset', or finish setup first.")
+    return ChatResponse(
+        session_id=sid, 
+        reply="I didn't understand that. You can 'show itinerary' or 'reset', or finish setup first."
+    )
 
 @app.get("/geocode")
 def geocode(hotel_address: str = Query(..., description="Hotel name or address")):
