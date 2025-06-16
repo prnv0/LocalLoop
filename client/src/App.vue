@@ -1,7 +1,7 @@
 <template>
-  <div class="h-screen bg-gray-50 flex flex-col">
+  <div class="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors duration-200">
     <!-- Header -->
-    <header class="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3">
+    <header class="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
       <div class="flex items-center justify-between max-w-7xl mx-auto">
         <div class="flex items-center space-x-3">
           <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
@@ -12,10 +12,49 @@
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
           </div>
-          <h1 class="text-xl font-bold text-gray-900">LocalLoop</h1>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-white">LocalLoop</h1>
         </div>
-        <div class="text-sm text-gray-500">
-          Chat-driven itinerary planning
+        <div class="flex items-center space-x-4">
+          <div class="text-sm text-gray-500 dark:text-gray-400">
+            Chat-driven itinerary planning
+          </div>
+          <!-- Dark mode toggle button -->
+          <button
+            @click="darkMode.toggleDarkMode"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            :title="darkMode.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <!-- Sun icon for dark mode -->
+            <svg
+              v-if="darkMode.isDark"
+              class="w-5 h-5 text-gray-400 hover:text-gray-200"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+              />
+            </svg>
+            <!-- Moon icon for light mode -->
+            <svg
+              v-else
+              class="w-5 h-5 text-gray-600 hover:text-gray-900"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </header>
@@ -25,7 +64,7 @@
       <!-- Mobile Layout (Stack) -->
       <div class="flex flex-col md:hidden w-full">
         <!-- Mobile Tab Selector -->
-        <div class="flex bg-white border-b border-gray-200">
+        <div class="flex bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <button
             @click="mobileView = 'chat'"
             :class="[
@@ -109,8 +148,10 @@ import { ref } from 'vue';
 import ChatPane from './components/ChatPane.vue';
 import ItineraryView from './components/ItineraryView.vue';
 import { useChat } from './composables/useChat';
+import { useDarkMode } from './composables/useDarkMode';
 
 const chat = useChat();
+const darkMode = useDarkMode();
 const mobileView = ref<'chat' | 'itinerary'>('chat');
 
 const handleSendMessage = async (message: string): Promise<void> => {

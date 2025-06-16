@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col h-full bg-white border-r border-gray-200">
+  <div class="flex flex-col h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
     <!-- Header -->
-    <div class="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-white">
+    <div class="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-gray-900">Travel Assistant</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Travel Assistant</h2>
         <button
           @click="clearChat"
-          class="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded transition-colors"
+          class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1 rounded transition-colors"
         >
           Clear Chat
         </button>
@@ -16,7 +16,7 @@
     <!-- Messages Container -->
     <div 
       ref="messagesContainer"
-      class="flex-1 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar"
+      class="flex-1 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar bg-white dark:bg-gray-800"
     >
       <div
         v-for="message in messages"
@@ -29,7 +29,7 @@
             <div class="bg-primary-500 text-white rounded-lg px-4 py-2 shadow-sm">
               <p class="text-sm">{{ message.content }}</p>
             </div>
-            <p class="text-xs text-gray-500 mt-1 text-right">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
               {{ formatTime(message.timestamp) }}
             </p>
           </div>
@@ -38,7 +38,7 @@
         <!-- Bot Message -->
         <div v-else class="flex justify-start">
           <div class="max-w-xs lg:max-w-md">
-            <div class="bg-gray-100 text-gray-900 rounded-lg px-4 py-2 shadow-sm">
+            <div class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-4 py-2 shadow-sm">
               <p class="text-sm">{{ message.content }}</p>
               
               <!-- Options (Checkboxes) -->
@@ -47,15 +47,15 @@
                   <label
                     v-for="(option, index) in message.options"
                     :key="index"
-                    class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                    class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded"
                   >
                     <input
                       type="checkbox"
                       :value="option"
                       v-model="selectedOptions"
-                      class="rounded border-gray-300 text-primary-500 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50"
+                      class="rounded border-gray-300 dark:border-gray-600 text-primary-500 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 dark:bg-gray-700"
                     >
-                    <span class="text-sm text-gray-700">{{ option }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ option }}</span>
                   </label>
                 </div>
                 <button
@@ -68,7 +68,7 @@
                 </button>
               </div>
             </div>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {{ formatTime(message.timestamp) }}
             </p>
           </div>
@@ -77,23 +77,23 @@
 
       <!-- Loading Indicator -->
       <div v-if="isLoading" class="flex justify-start">
-        <div class="bg-gray-100 rounded-lg px-4 py-2">
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2">
           <div class="flex items-center space-x-1">
-            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="px-4 py-2 bg-red-50 border-t border-red-200">
-      <p class="text-sm text-red-600">{{ error }}</p>
+    <div v-if="error" class="px-4 py-2 bg-red-50 dark:bg-red-900/30 border-t border-red-200 dark:border-red-800">
+      <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
 
     <!-- Input Area -->
-    <div class="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
+    <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
       <div class="flex space-x-2">
         <input
           v-model="inputMessage"
@@ -101,7 +101,7 @@
           :disabled="isLoading"
           type="text"
           placeholder="Type your message..."
-          class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
         >
         <button
           @click="handleSendMessage"
