@@ -52,10 +52,19 @@ def get_place_details(lat, lng, included_types="", max_result_count=10, radius=3
         return {"results": []}
 
 
-def search_nearby_places(lat, lng, place_types=None, keywords=None, radius=5000, min_rating=3.0, target_time=None):
+def search_nearby_places(lat, lng, place_types=None, keywords=None, radius=5000, min_rating=3.0, target_time=None, max_results=10):
     """
     Search for nearby restaurants and attractions within a radius (meters).
     Filters results by minimum rating.
+    Args:
+        lat: Latitude
+        lng: Longitude
+        place_types: List of place types to search for
+        keywords: List of keywords to filter by
+        radius: Search radius in meters
+        min_rating: Minimum rating to include
+        target_time: Target time to check if places are open
+        max_results: Maximum number of results to return per type
     """
     print(f"Searching places at lat={lat}, lng={lng}, radius={radius}, min_rating={min_rating}")
     print(f"Place types: {place_types}, Keywords: {keywords}")
@@ -219,12 +228,15 @@ def _filter_places(places, min_rating, target_time=None):
 
             if open_now:
                 filtered.append({
+                    'id': place.get('id', ''),
+                    'place_id': place.get('id', ''),
                     'name': place.get('displayName', {}).get('text', ''),
                     'address': place.get('formattedAddress', ''),
                     'latitude': place.get('location', {}).get('latitude', 0),
                     'longitude': place.get('location', {}).get('longitude', 0),
+                    'lat': place.get('location', {}).get('latitude', 0),
+                    'lng': place.get('location', {}).get('longitude', 0),
                     'rating': rating,
-                    'types': place.get('types', []),
-                    'place_id': place.get('id', '')
+                    'types': place.get('types', [])
                 })
     return filtered
