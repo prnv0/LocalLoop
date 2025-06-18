@@ -79,16 +79,138 @@
                   🚗 {{ currentItinerary.legs[index].duration }} ({{ currentItinerary.legs[index].distance }})
                 </div>
               </div>
-              <button
-                @click="removeStop(place.id)"
-                class="ml-4 text-gray-400 hover:text-red-500 transition-colors"
-                title="Remove stop"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
+              <div class="flex items-center space-x-2">
+                <button
+                  @click="editStop(place)"
+                  class="text-gray-400 hover:text-primary-500 transition-colors"
+                  title="Edit stop"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                </button>
+                <button
+                  @click="removeStop(place)"
+                  class="text-gray-400 hover:text-red-500 transition-colors"
+                  title="Remove stop"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
             </div>
+          </div>
+
+          <!-- Add Stop Button (moved to bottom) -->
+          <button
+            @click="showAddStopForm = true"
+            class="w-full flex items-center justify-center space-x-2 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-primary-500 dark:hover:border-primary-500 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            <span>Add Stop</span>
+          </button>
+        </div>
+
+        <!-- Add Stop Modal -->
+        <div v-if="showAddStopForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Add New Stop</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Name</label>
+                <input
+                  v-model="locationName"
+                  type="text"
+                  placeholder="Enter location name (e.g., Central Park, Empire State Building)"
+                  class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Place Type (Optional)</label>
+                <select
+                  v-model="selectedPlaceType"
+                  class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700"
+                >
+                  <option value="">Select a type (optional)</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="cafe">Cafe</option>
+                  <option value="museum">Museum</option>
+                  <option value="park">Park</option>
+                  <option value="shopping">Shopping</option>
+                  <option value="attraction">Attraction</option>
+                </select>
+              </div>
+              <div class="flex justify-end space-x-3">
+                <button
+                  @click="closeAddForm"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="addStop"
+                  :disabled="!locationName"
+                  class="px-4 py-2 text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 rounded-md transition-colors disabled:opacity-50"
+                >
+                  Add Stop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Stop Modal -->
+        <div v-if="showEditStopForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Edit Stop</h3>
+            <form @submit.prevent="submitEditStop" class="space-y-4">
+              <div>
+                <label for="edit-location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Name</label>
+                <input
+                  id="edit-location"
+                  v-model="locationName"
+                  type="text"
+                  required
+                  placeholder="Enter new location name"
+                  class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <label for="edit-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Place Type (Optional)</label>
+                <select
+                  id="edit-type"
+                  v-model="selectedPlaceType"
+                  class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700"
+                >
+                  <option value="">Select a type (optional)</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="cafe">Cafe</option>
+                  <option value="museum">Museum</option>
+                  <option value="park">Park</option>
+                  <option value="shopping">Shopping</option>
+                  <option value="attraction">Attraction</option>
+                </select>
+              </div>
+              <div class="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  @click="closeEditForm"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  :disabled="!locationName"
+                  class="px-4 py-2 text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 rounded-md transition-colors disabled:opacity-50"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -131,7 +253,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import L from 'leaflet';
-import type { Itinerary, ViewMode } from '../types';
+import type { Itinerary, ViewMode, Place } from '../types';
 
 interface Props {
   currentItinerary: Itinerary | null;
@@ -139,6 +261,8 @@ interface Props {
 
 interface Emits {
   (e: 'remove-stop', stopId: string): void;
+  (e: 'edit-stop', stopId: string, locationName: string, placeType?: string): void;
+  (e: 'add-stop', locationName: string, placeType?: string): void;
 }
 
 const props = defineProps<Props>();
@@ -149,8 +273,52 @@ const mapContainer = ref<HTMLElement>();
 let map: L.Map | null = null;
 let markers: L.Marker[] = [];
 
-const removeStop = (stopId: string) => {
-  emit('remove-stop', stopId);
+// Form state
+const showAddStopForm = ref(false);
+const showEditStopForm = ref(false);
+const selectedPlaceType = ref<string>('');
+const locationName = ref<string>('');
+const editingStopId = ref<string>('');
+
+const closeAddForm = () => {
+  showAddStopForm.value = false;
+  locationName.value = '';
+  selectedPlaceType.value = '';
+};
+
+const closeEditForm = () => {
+  showEditStopForm.value = false;
+  locationName.value = '';
+  selectedPlaceType.value = '';
+  editingStopId.value = '';
+};
+
+const removeStop = (place: Place) => {
+  const stopId = (place.id as string | undefined) || (place as any).place_id || '';
+  if (stopId) {
+    emit('remove-stop', stopId);
+  }
+};
+
+const editStop = (place: Place) => {
+  editingStopId.value = place.id;
+  locationName.value = place.name;
+  selectedPlaceType.value = ''; // Reset type selection
+  showEditStopForm.value = true;
+};
+
+const submitEditStop = () => {
+  if (locationName.value && editingStopId.value) {
+    emit('edit-stop', editingStopId.value, locationName.value, selectedPlaceType.value);
+    closeEditForm();
+  }
+};
+
+const addStop = () => {
+  if (locationName.value) {
+    emit('add-stop', locationName.value, selectedPlaceType.value);
+    closeAddForm();
+  }
 };
 
 const initializeMap = () => {
@@ -177,9 +345,12 @@ const updateMapMarkers = () => {
   const places = props.currentItinerary.ordered_places;
   if (places.length === 0) return;
 
-  // Add markers for each stop
+  // Add markers for each stop (support lat/lng or latitude/longitude keys)
   places.forEach((place, index) => {
-    const marker = L.marker([place.lat, place.lng])
+    const lat = (place as any).lat !== undefined ? (place as any).lat : (place as any).latitude;
+    const lng = (place as any).lng !== undefined ? (place as any).lng : (place as any).longitude;
+    if (lat === undefined || lng === undefined) return;
+    const marker = L.marker([lat, lng])
       .addTo(map!)
       .bindPopup(`
         <div class="p-2">
@@ -193,7 +364,11 @@ const updateMapMarkers = () => {
 
   // Draw polyline connecting stops
   if (places.length > 1) {
-    const coordinates = places.map(place => [place.lat, place.lng] as [number, number]);
+    const coordinates = places.map(place => {
+      const lat = (place as any).lat !== undefined ? (place as any).lat : (place as any).latitude;
+      const lng = (place as any).lng !== undefined ? (place as any).lng : (place as any).longitude;
+      return [lat, lng] as [number, number];
+    });
     L.polyline(coordinates, { color: '#3b82f6', weight: 3 }).addTo(map!);
   }
 

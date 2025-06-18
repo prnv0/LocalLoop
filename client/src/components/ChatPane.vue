@@ -41,9 +41,10 @@
             <div class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-4 py-2 shadow-sm">
               <p class="text-sm">{{ message.content }}</p>
               
-              <!-- Options (Checkboxes) -->
+              <!-- Options Menu -->
               <div v-if="message.options && message.options.length > 0" class="mt-3">
-                <div class="space-y-2">
+                <!-- For cuisine selection (multiple choice) -->
+                <div v-if="isCuisineSelection(message)" class="space-y-2">
                   <label
                     v-for="(option, index) in message.options"
                     :key="index"
@@ -57,15 +58,40 @@
                     >
                     <span class="text-sm text-gray-700 dark:text-gray-300">{{ option }}</span>
                   </label>
+                  <button
+                    v-if="selectedOptions.length > 0"
+                    @click="submitSelectedOptions"
+                    :disabled="isLoading"
+                    class="mt-2 w-full bg-primary-500 text-white text-sm px-3 py-1.5 rounded-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Submit Selection
+                  </button>
                 </div>
-                <button
-                  v-if="selectedOptions.length > 0"
-                  @click="submitSelectedOptions"
-                  :disabled="isLoading"
-                  class="mt-2 w-full bg-primary-500 text-white text-sm px-3 py-1.5 rounded-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Submit Selection
-                </button>
+
+                <!-- For all other options (single choice) -->
+                <div v-else class="space-y-2">
+                  <label
+                    v-for="(option, index) in message.options"
+                    :key="index"
+                    class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded"
+                  >
+                    <input
+                      type="radio"
+                      :value="option"
+                      v-model="selectedOption"
+                      class="border-gray-300 dark:border-gray-600 text-primary-500 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 dark:bg-gray-700"
+                    >
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ option }}</span>
+                  </label>
+                  <button
+                    v-if="selectedOption"
+                    @click="submitSingleOption"
+                    :disabled="isLoading"
+                    class="mt-2 w-full bg-primary-500 text-white text-sm px-3 py-1.5 rounded-md hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Submit
+                  </button>
+                </div>
               </div>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -134,8 +160,17 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const inputMessage = ref('');
-const selectedOptions = ref<string[]>([]);
+const selectedOptions = ref<string[]>([]); // For cuisine selection (multiple choice)
+const selectedOption = ref<string>(''); // For all other options (single choice)
 const messagesContainer = ref<HTMLElement>();
+
+// Helper function to determine if we're in cuisine selection mode
+const isCuisineSelection = (message: Message) => {
+  // Check if the message is asking about cuisines
+  return message.content.toLowerCase().includes('cuisine') || 
+         message.content.toLowerCase().includes('food type') ||
+         message.options?.some(opt => opt.toLowerCase().includes('cuisine'));
+};
 
 const handleSendMessage = () => {
   if (inputMessage.value.trim() && !props.isLoading) {
@@ -149,6 +184,13 @@ const submitSelectedOptions = () => {
     const message = selectedOptions.value.join(', ');
     emit('send-message', message);
     selectedOptions.value = [];
+  }
+};
+
+const submitSingleOption = () => {
+  if (selectedOption.value) {
+    emit('send-message', selectedOption.value);
+    selectedOption.value = '';
   }
 };
 
@@ -171,4 +213,45 @@ watch(() => props.messages.length, () => {
     }
   });
 });
+
+// Reset selections when messages change
+watch(() => props.messages, () => {
+  selectedOptions.value = [];
+  selectedOption.value = '';
+}, { deep: true });
 </script>
+
+<style scoped>
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

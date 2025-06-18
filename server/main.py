@@ -187,8 +187,7 @@ def chat(req: ChatRequest):
                     hotel["longitude"],
                     place_types=None,  # Let it default to restaurants
                     keywords=session["prefs"]["food_keywords"],
-                    radius=radius_m,
-                    max_results=7  # Limit to 7 places
+                    radius=radius_m
                 )
             else:
                 # Use itinerary type mapping (for non-food focused itineraries)
@@ -198,8 +197,7 @@ def chat(req: ChatRequest):
                     hotel["longitude"],
                     place_types=place_types,
                     keywords=None,
-                    radius=radius_m,
-                    max_results=7  # Limit to 7 places
+                    radius=radius_m
                 )
             session["places"] = places
 
@@ -216,7 +214,12 @@ def chat(req: ChatRequest):
             session["step"] = 5  # now in "post-itinerary" mode
             return ChatResponse(
                 session_id=sid,
-                reply="I've created your itinerary! Would you like to make any changes?",
+                reply="I've created your itinerary! Would you like to make any changes? You can:\n"
+                      "1. Remove a stop (e.g., 'remove 2nd stop')\n"
+                      "2. Replace a stop (e.g., 'replace 3rd stop with restaurant')\n"
+                      "3. Add more places (e.g., 'add more restaurants')\n"
+                      "4. Change travel mode (e.g., 'let's drive instead')\n"
+                      "5. Or say 'no changes' if you're happy with it",
                 options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                 itinerary=itinerary
             )
@@ -262,24 +265,22 @@ def chat(req: ChatRequest):
                         itinerary=session["itinerary"]
                     )
 
-            # 3) Replace a stop with a specific location
-            replace_pattern = r"replace (\d+)(?:st|nd|rd|th) stop with (.+?)(?: as a (\w+))?$"
+            # 3) Replace a stop
+            replace_pattern = r"replace (\d+)(?:st|nd|rd|th) stop with (\w+)"
             m = re.match(replace_pattern, text)
             if m:
                 idx = int(m.group(1)) - 1
-                location_name = m.group(2).strip()
-                place_type = m.group(3) if m.group(3) else None
+                new_type = m.group(2)
                 
                 if 0 <= idx < len(session["places"]):
-                    # Search for the specific location
+                    # Search for a new place of the specified type
                     new_places = search_nearby_places(
                         session["hotel"]["latitude"],
                         session["hotel"]["longitude"],
-                        place_types=[place_type] if place_type else None,
-                        keywords=[location_name],
+                        place_types=[new_type],
+                        keywords=session["prefs"]["food_keywords"],
                         radius=int(session["prefs"]["max_distance_km"] * 1000),
-                        exclude_place_ids=[p["place_id"] for p in session["places"]],
-                        max_results=1  # Only need one place for replacement
+                        exclude_place_ids=[p["place_id"] for p in session["places"]]  # Exclude existing places
                     )
                     
                     if new_places:
@@ -288,14 +289,14 @@ def chat(req: ChatRequest):
                         session["itinerary"] = _regenerate(session)
                         return ChatResponse(
                             session_id=sid,
-                            reply=f"Replaced stop #{idx+1} with {location_name}. Would you like to make any other changes?",
+                            reply=f"Replaced stop #{idx+1} with a new {new_type}. Would you like to make any other changes?",
                             options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                             itinerary=session["itinerary"]
                         )
                     else:
                         return ChatResponse(
                             session_id=sid,
-                            reply=f"Sorry, I couldn't find {location_name} nearby. Would you like to try a different location?",
+                            reply=f"Sorry, I couldn't find any {new_type} to replace that stop. Would you like to try a different type?",
                             options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
                             itinerary=session["itinerary"]
                         )
@@ -306,39 +307,25 @@ def chat(req: ChatRequest):
                         itinerary=session["itinerary"]
                     )
 
-            # 4) Add a specific location
-            add_pattern = r"add (.+?)(?: as a (\w+))?$"
-            m = re.match(add_pattern, text)
+            # 4) Add more of a category
+            m = re.match(r"add more (\w+)", text)
             if m:
-                location_name = m.group(1).strip()
-                place_type = m.group(2) if m.group(2) else None
-                
-                # Search for the specific location
+                category = m.group(1)
                 new_places = search_nearby_places(
                     session["hotel"]["latitude"],
                     session["hotel"]["longitude"],
-                    place_types=[place_type] if place_type else None,
-                    keywords=[location_name],
-                    radius=int(session["prefs"]["max_distance_km"] * 1000),
-                    max_results=1  # Only need one place for addition
+                    place_types=[category],
+                    keywords=session["prefs"]["food_keywords"],
+                    radius=int(session["prefs"]["max_distance_km"] * 1000)
                 )
-                
-                if new_places:
-                    session["places"].extend(new_places)
-                    session["itinerary"] = _regenerate(session)
-                    return ChatResponse(
-                        session_id=sid,
-                        reply=f"Added {location_name} to your itinerary. Would you like to make any other changes?",
-                        options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
-                        itinerary=session["itinerary"]
-                    )
-                else:
-                    return ChatResponse(
-                        session_id=sid,
-                        reply=f"Sorry, I couldn't find {location_name} nearby. Would you like to try a different location?",
-                        options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
-                        itinerary=session["itinerary"]
-                    )
+                session["places"].extend(new_places)
+                session["itinerary"] = _regenerate(session)
+                return ChatResponse(
+                    session_id=sid,
+                    reply=f"Added more {category}. Would you like to make any other changes?",
+                    options=["no changes", "remove a stop", "replace a stop", "add more places", "change travel mode"],
+                    itinerary=session["itinerary"]
+                )
 
             # 5) Change travel mode
             if text.startswith("let's ") and " instead" in text:
@@ -405,7 +392,7 @@ def get_nearby_places(hotel_address: str, time_str: str = Query(None, descriptio
         except ValueError:
             return {"error": "Invalid time format. Use HH:MM, e.g., 14:30."}
 
-    places = search_nearby_places(lat, lng, target_time=target_time, max_results=7)  # Limit to 7 places
+    places = search_nearby_places(lat, lng, target_time=target_time)
 
     return {"hotel": hotel_info, "places": places}
 
@@ -417,7 +404,7 @@ def get_itinerary(hotel_address: str):
 
     lat = hotel_info['latitude']
     lng = hotel_info['longitude']
-    places = search_nearby_places(lat, lng, max_results=7)  # Limit to 7 places
+    places = search_nearby_places(lat, lng)
 
     itinerary = generate_itinerary(lat, lng, places, mode="walking")
 

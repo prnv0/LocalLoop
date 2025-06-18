@@ -88,7 +88,9 @@ export function useChat() {
   const removeItineraryStop = (stopId: string) => {
     if (currentItinerary.value) {
       // Remove the place and its corresponding leg
-      const index = currentItinerary.value.ordered_places.findIndex(place => place.id === stopId);
+      const index = currentItinerary.value.ordered_places.findIndex(
+        place => place.id === stopId || (place as any).place_id === stopId
+      );
       if (index !== -1) {
         currentItinerary.value.ordered_places.splice(index, 1);
         // Remove the corresponding leg if it exists

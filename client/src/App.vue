@@ -111,6 +111,8 @@
             v-show="mobileView === 'itinerary'"
             :current-itinerary="chat.currentItinerary.value"
             @remove-stop="chat.removeItineraryStop"
+            @edit-stop="handleEditStop"
+            @add-stop="handleAddStop"
             class="h-full"
           />
         </div>
@@ -135,6 +137,8 @@
           <ItineraryView
             :current-itinerary="chat.currentItinerary.value"
             @remove-stop="chat.removeItineraryStop"
+            @edit-stop="handleEditStop"
+            @add-stop="handleAddStop"
             class="h-full"
           />
         </div>
@@ -164,5 +168,30 @@ const handleSendMessage = async (message: string): Promise<void> => {
       }
     }, 1000);
   }
+};
+
+const handleEditStop = async (stopId: string, locationName: string, placeType?: string): Promise<void> => {
+  // Find the stop number in the itinerary
+  const stopIndex = chat.currentItinerary.value?.ordered_places.findIndex(place => place.id === stopId);
+  if (stopIndex !== undefined && stopIndex !== -1) {
+    const ordinal = getOrdinalSuffix(stopIndex + 1);
+    const message = placeType 
+      ? `replace ${stopIndex + 1}${ordinal} stop with ${locationName} as a ${placeType}`
+      : `replace ${stopIndex + 1}${ordinal} stop with ${locationName}`;
+    await chat.sendMessage(message);
+  }
+};
+
+const handleAddStop = async (locationName: string, placeType?: string): Promise<void> => {
+  const message = placeType 
+    ? `add ${locationName} as a ${placeType}`
+    : `add ${locationName}`;
+  await chat.sendMessage(message);
+};
+
+const getOrdinalSuffix = (n: number): string => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
 };
 </script>
